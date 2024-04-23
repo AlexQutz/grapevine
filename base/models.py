@@ -9,7 +9,6 @@ class User(AbstractUser):
     
     
 class ProgrammingLanguage(models.Model):
-    
     name = models.CharField(max_length=100)
     expertise = models.CharField(max_length=100)    
     

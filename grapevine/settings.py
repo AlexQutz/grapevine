@@ -37,6 +37,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'rest_framework.authtoken',
     'base.apps.BaseConfig',
     'rest_framework',
 ]
@@ -74,7 +75,7 @@ TEMPLATES = [
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
-        'base.authentication.CustomBasicAuthenticationBackend',
+        'rest_framework.authentication.TokenAuthentication',
     ],
 }
 
