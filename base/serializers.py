@@ -39,3 +39,10 @@ class SkillActionSerializer(serializers.Serializer):
     action = serializers.ChoiceField(choices=ACTION_CHOICES)
     skill = serializers.ChoiceField(choices =LANGUAGE_CHOICES)
     expertise = serializers.ChoiceField(choices = EXPERTISE_CHOICES)
+    
+    
+class ProjectSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Project
+        fields = ['project_name', 'description', 'maximum_collaborators', 'creator', 'collaborators']
+        read_only_fields = ['id', 'creator', 'collaborators']

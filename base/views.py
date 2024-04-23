@@ -4,7 +4,7 @@ from rest_framework.views import APIView
 from rest_framework.authtoken.models import Token
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.permissions import IsAuthenticated
-from .serializers import UserRegistrationSerializer , PasswordResetSerializer , SkillActionSerializer
+from .serializers import UserRegistrationSerializer , PasswordResetSerializer , SkillActionSerializer , ProjectSerializer
 from django.contrib.auth import get_user_model
 from .models import ProgrammingLanguage
 
@@ -49,6 +49,10 @@ class PasswordResetAPIView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
 class SkillActionAPIView(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
+    
+    
     def post(self, request , username):
         serializer = SkillActionSerializer(data=request.data)
         if serializer.is_valid():
@@ -73,7 +77,7 @@ class SkillActionAPIView(APIView):
                 
                 if user.programminglanguages.count() < 3:
                     user.programminglanguages.add(programming_language)
-                    return Response({'detail': f'"{skill}" programming language added successfully with proficiency level "{expertise}".'}, status=status.HTTP_200_OK)
+                    return Response({'detail': f"'{skill}' programming language added successfully with proficiency level '{expertise}'."}, status=status.HTTP_200_OK)
                 else:
                     return Response({'detail': 'Maximum of 3 skills already registered.'}, status=status.HTTP_400_BAD_REQUEST)
             elif action == 'remove': 
@@ -81,9 +85,22 @@ class SkillActionAPIView(APIView):
                     
                     language_to_remove = ProgrammingLanguage.objects.get(name=skill, expertise=expertise)
                     user.programminglanguages.remove(language_to_remove.id)
-                    return Response({'detail': f'"{skill}" programming language removed successfully.'}, status=status.HTTP_200_OK)
+                    return Response({'detail': f"'{skill}' programming language removed successfully."}, status=status.HTTP_200_OK)
                 
                 else:
-                    return Response({'detail': f'"{skill}" in "{expertise}" level not found in user\'s skills.'}, status=status.HTTP_400_BAD_REQUEST)
+                    return Response({'detail': f"'{skill}' in '{expertise}' level not found in user\'s skills."}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+class CreateProjectAPIView(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
+    
+    def post(self, request):
+        serializer = ProjectSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.validated_data['creator'] = request.user
+            serializer.save()
+            message = f"Project with name '{serializer.validated_data['project_name']}' created by {request.user.username}."
+            return Response({'message': message}, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
