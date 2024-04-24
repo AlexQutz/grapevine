@@ -4,9 +4,14 @@ from rest_framework.views import APIView
 from rest_framework.authtoken.models import Token
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.permissions import IsAuthenticated
-from .serializers import UserRegistrationSerializer , PasswordResetSerializer , SkillActionSerializer , ProjectSerializer
+from .serializers import *
 from django.contrib.auth import get_user_model
-from .models import ProgrammingLanguage
+from .models import *
+from django.db.models import Count,F
+
+
+# --------------------------USER FUNCTIONALITIES-----------------------------
+
 
 class UserRegistrationAPIView(APIView):
     def post(self, request):
@@ -91,6 +96,29 @@ class SkillActionAPIView(APIView):
                     return Response({'detail': f"'{skill}' in '{expertise}' level not found in user\'s skills."}, status=status.HTTP_400_BAD_REQUEST)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
+
+class UserStatisticsAPIView(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
+   
+    def get(self, request):
+        projects_contributed = Project.objects.filter(collaborators=request.user).count()
+        projects_created = Project.objects.filter(creator=request.user).count()
+        
+        
+        statistics_data = {
+            'projects_contributed': projects_contributed,
+            'projects_created': projects_created,
+        }
+        
+        
+        serializer = UserStatisticsSerializer(statistics_data)
+        
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    
+#--------------------------------PROJECT FUNCTIONALITIES----------------------------------------
+
 class CreateProjectAPIView(APIView):
     authentication_classes = [TokenAuthentication]
     permission_classes = [IsAuthenticated]
@@ -103,4 +131,77 @@ class CreateProjectAPIView(APIView):
             message = f"Project with name '{serializer.validated_data['project_name']}' created by {request.user.username}."
             return Response({'message': message}, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+class ProjectsOpenSeatsAPIView(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request):
+        
+        open_seat_projects = Project.objects.annotate(collaborators_count=Count('collaborators')).filter(
+            collaborators_count__lt=F('maximum_collaborators')).exclude(creator=request.user)
+        
+        serializer = ProjectSerializer(open_seat_projects, many=True)
+        
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    
+    
+class ProjectInterestAPIView(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request):
+        project_interests = ProjectInterest.objects.filter(project__creator=request.user)
+        serializer = ProjectInterestCollaboratorSerializer(project_interests, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    
+    def post(self, request):
+        
+        project_id = request.data.get('project_id')
+
+        try:
+            project = Project.objects.get(id=project_id)
+        except Project.DoesNotExist:
+            return Response({"message": "Project not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        
+        if request.user != project.creator:
+            project_interest = ProjectInterest.objects.create(project=project, user=request.user)
+            serializer = ProjectInterestSerializer(project_interest)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        else:
+            return Response({"message": "You cannot express interest in your own project."}, status=status.HTTP_400_BAD_REQUEST)
+    
+
+class ProjectCompletionDeletionAPIView(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def put(self, request, project_id):
+        
+        
+        try:
+            project = Project.objects.get(id=project_id, creator=request.user)
+        except Project.DoesNotExist:
+            return Response({"message": "Project not found or you are not the creator."}, status=status.HTTP_404_NOT_FOUND)
+
+        
+        project.completed = True
+        project.save()
+
+        return Response({"message": "Project completed successfully."}, status=status.HTTP_200_OK)
+
+    def delete(self, request, project_id):
+        
+        
+        try:
+            project = Project.objects.get(id=project_id, creator=request.user)
+        except Project.DoesNotExist:
+            return Response({"message": "Project not found or you are not the creator."}, status=status.HTTP_404_NOT_FOUND)
+
+        
+        project.delete()
+
+        return Response({"message": "Project deleted successfully."}, status=status.HTTP_204_NO_CONTENT)
     

@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import User,ProgrammingLanguage,Project
+from .models import *
 
 class UserRegistrationSerializer(serializers.ModelSerializer):
     class Meta:
@@ -41,8 +41,28 @@ class SkillActionSerializer(serializers.Serializer):
     expertise = serializers.ChoiceField(choices = EXPERTISE_CHOICES)
     
     
+class UserStatisticsSerializer(serializers.Serializer):
+    projects_contributed = serializers.IntegerField()
+    projects_created = serializers.IntegerField()
+    
+    
 class ProjectSerializer(serializers.ModelSerializer):
     class Meta:
         model = Project
         fields = ['project_name', 'description', 'maximum_collaborators', 'creator', 'collaborators']
         read_only_fields = ['id', 'creator', 'collaborators']
+        
+class ProjectInterestSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ProjectInterest
+        fields = ['id', 'project', 'user', 'message', 'accepted', 'created_at']
+        
+        
+class ProjectInterestCollaboratorSerializer(serializers.ModelSerializer):
+    username = serializers.CharField(source='user.username', read_only=True)
+    email = serializers.CharField(source='user.email', read_only=True)
+    skills = serializers.ListField(child=serializers.CharField(), source='user.skills', read_only=True)
+
+    class Meta:
+        model = ProjectInterest
+        fields = ['username', 'email', 'skills']

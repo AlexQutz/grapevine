@@ -18,3 +18,12 @@ class Project(models.Model):
     maximum_collaborators = models.PositiveIntegerField()
     creator = models.ForeignKey('User', on_delete=models.CASCADE, related_name='created_projects')
     collaborators = models.ManyToManyField('User', related_name='projects_collaborating')
+    completed = models.BooleanField(default=False)
+    
+class ProjectInterest(models.Model):
+    project = models.ForeignKey(Project, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    message = models.TextField(blank=True)
+    accepted = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    
